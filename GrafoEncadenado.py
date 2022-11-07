@@ -1,36 +1,27 @@
 import numpy as np
+from Lista import Lista
 
-
-class GrafoSecuencial:
+class GrafoEncadenado:
     __cant_nodos: int
-    __dimension: int
     __arreglo: np.ndarray
     
     
     def __init__(self, nodos:int, arcos:list[tuple[int]]) -> None:
         self.__cant_nodos = nodos
-        self.__dimension = self.__cant_nodos*(self.__cant_nodos+1)//2
-        self.__arreglo = np.empty(self.__dimension, int)
-        self.__arreglo.fill(0)
+        self.__arreglo = np.empty(self.__cant_nodos, Lista)
+        for i in range(self.__cant_nodos):
+            self.__arreglo[i] = Lista()
         for i, j, k in arcos:
-            self.set_arco(i, j, k)
+            self.__arreglo[i].set_arco((j, k))
         
     
     
     def set_arco(self,  nodo_origen:int, nodo_destino:int, valor:int):
-        if nodo_origen == nodo_destino == 0:
-            self.__arreglo[0] = valor
-        else:
-            if nodo_origen < nodo_destino:
-                nodo_origen, nodo_destino = nodo_destino, nodo_origen
-            self.__arreglo[nodo_origen*(nodo_origen+1)//2+nodo_destino] = valor
+        self.__arreglo[nodo_origen].set_arco((nodo_destino, valor))
+        
     
     def get_arco(self, nodo_origen:int, nodo_destino:int):
-        if nodo_origen == nodo_destino == 0:
-            return self.__arreglo[0] 
-        if nodo_origen < nodo_destino:
-            nodo_origen, nodo_destino = nodo_destino, nodo_origen
-        return self.__arreglo[nodo_origen*(nodo_origen+1)//2+nodo_destino]
+        return self.__arreglo[nodo_origen].get_arco(nodo_destino)
     
     
     def adyacentes(self, un_nodo) -> list[int]:
@@ -75,6 +66,8 @@ class GrafoSecuencial:
         
         return retorno
 
+
+
     
 
     def get_corto_desconocido(self, distancias:np.ndarray, conocidos:np.ndarray):
@@ -117,23 +110,28 @@ class GrafoSecuencial:
         nodos_camino.insert(0, nodo_origen)
         return nodos_camino
 
+
+
     
 
     def conexo(self) -> bool:
         matriz = np.empty((self.__cant_nodos, self.__cant_nodos), int)
+        matriz_aux = np.empty((self.__cant_nodos, self.__cant_nodos), int)
         matriz_conectividad = np.empty((self.__cant_nodos, self.__cant_nodos), int)
         for i in range(self.__cant_nodos):
             for j in range(self.__cant_nodos):
                 matriz[i, j] = self.get_arco(i, j)
+                matriz_aux[i, j] = self.get_arco(i, j)
                 matriz_conectividad[i, j] = self.get_arco(i, j)
         
         for i in range(self.__cant_nodos):
-            matriz_conectividad = np.matmul(matriz, matriz_conectividad)
+            matriz_aux = np.matmul(matriz, matriz_aux)
+            matriz_conectividad = matriz_conectividad + matriz_aux
         
         i = 0
         j = 0
 
-        while i < self.__cant_nodos and j < self.__cant_nodos and matriz_conectividad[i, j] != 0:
+        while i < self.__cant_nodos and j < self.__cant_nodos and (matriz_conectividad[i, j] != 0 or i!=j):
             j = 0
             while j < self.__cant_nodos and matriz_conectividad[i, j] != 0:
                 j += 1
@@ -166,7 +164,7 @@ class GrafoSecuencial:
             if caminos[i] != -1:
                 arcos.append((i, caminos[i], distancias[i]))
         
-        un_grafo = GrafoSecuencial(self.__cant_nodos, arcos)
+        un_grafo = GrafoEncadenado(self.__cant_nodos, arcos)
 
         return un_grafo
     
